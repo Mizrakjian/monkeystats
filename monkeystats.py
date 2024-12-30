@@ -10,8 +10,7 @@ date: 2024-12-29
 """
 
 import os
-from datetime import datetime, time, timedelta, timezone
-from math import remainder
+from datetime import datetime, timedelta, timezone
 
 import requests
 
@@ -48,6 +47,22 @@ def fetch_data(endpoint: str) -> dict:
     return response.json()
 
 
+def format_time(elapsed: timedelta) -> str:
+    """Format a timedelta duration as a human-readable string."""
+
+    total_seconds = int(elapsed.total_seconds())
+    hours, remainder = divmod(total_seconds, 3600)
+    minutes, seconds = divmod(remainder, 60)
+
+    if total_seconds < 60:
+        return f"{seconds}s"
+
+    if total_seconds < 3600:
+        return f"{minutes}m"
+
+    return f"{hours}h {minutes:02d}m"
+
+
 def get_streak_info():
     """Fetch and display the user's current streak information."""
 
@@ -62,31 +77,17 @@ def get_streak_info():
     now = datetime.now(tz=timezone.utc)
     claimed_today = latest_test.date() == now.date()
 
-    midnight = datetime.combine(now.date() + timedelta(days=1), time.min, tzinfo=now.tzinfo)
-    hours_left = (midnight - now).seconds // 3600
-    minutes_left = (midnight - now).seconds % 3600 // 60
+    midnight = datetime.combine(now.date() + timedelta(days=1), datetime.min.time(), tzinfo=now.tzinfo)
+    time_left = format_time(midnight - now)
+    time_ago = format_time(now - latest_test)
 
-    latest_test_delta = now - latest_test
-
-    total_seconds = int(latest_test_delta.total_seconds())
-
-    if total_seconds < 60:
-        time_ago = f"{total_seconds}s"
-    elif total_seconds < 3600:
-        minutes = total_seconds // 60
-        time_ago = f"{minutes}m"
-    else:
-        hours, remaining_seconds = divmod(total_seconds, 3600)
-        minutes = remaining_seconds // 60
-        time_ago = f"{hours}h {minutes}m"
-
+    print(f"{'Last Test':>13} -> {latest_test.strftime('%Y-%m-%d %H:%M:%S UTC')} ({time_ago} ago)")
     print(
-        f"{'Last Test':>13} -> " f"{latest_test.strftime('%Y-%m-%d %H:%M:%S UTC')} " f"({time_ago} ago)"
-    )
-    print(f"{'Streaks':>13} -> Current: {streak_length}d | Longest: {max_streak_length}d")
-    print(
-        f"{'Claimed Today':>13} -> {'Yes' if claimed_today else 'No'} | "
-        f"Time Left: {hours_left}h {minutes_left:02d}m"
+        f"{'Streaks':>13} -> "
+        f"Current: {streak_length}d | "
+        f"Status: {'Claimed' if claimed_today else 'At risk'} | "
+        f"Time Left: {time_left} | "
+        f"Longest: {max_streak_length}d"
     )
 
 

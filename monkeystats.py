@@ -11,6 +11,7 @@ date: 2024-12-29
 
 import os
 from datetime import datetime, time, timedelta, timezone
+from math import remainder
 
 import requests
 
@@ -65,13 +66,28 @@ def get_streak_info():
     hours_left = (midnight - now).seconds // 3600
     minutes_left = (midnight - now).seconds % 3600 // 60
 
+    latest_test_delta = now - latest_test
+
+    total_seconds = int(latest_test_delta.total_seconds())
+
+    if total_seconds < 60:
+        time_ago = f"{total_seconds}s"
+    elif total_seconds < 3600:
+        minutes = total_seconds // 60
+        time_ago = f"{minutes}m"
+    else:
+        hours, remaining_seconds = divmod(total_seconds, 3600)
+        minutes = remaining_seconds // 60
+        time_ago = f"{hours}h {minutes}m"
+
     print(
-        f"Last Test Taken: {latest_test.strftime('%Y-%m-%d %H:%M:%S UTC') or 'No recent test data available.'}"
+        f"{'Last Test':>13} -> " f"{latest_test.strftime('%Y-%m-%d %H:%M:%S UTC')} " f"({time_ago} ago)"
     )
-    print(f" Current Streak: {streak_length} days")
-    print(f" Longest Streak: {max_streak_length} days")
-    print(f"  Claimed Today: {'Yes' if claimed_today else 'No'}")
-    print(f"      Time Left: {hours_left}h {minutes_left:02d}m")
+    print(f"{'Streaks':>13} -> Current: {streak_length}d | Longest: {max_streak_length}d")
+    print(
+        f"{'Claimed Today':>13} -> {'Yes' if claimed_today else 'No'} | "
+        f"Time Left: {hours_left}h {minutes_left:02d}m"
+    )
 
 
 def get_test_counts():
@@ -82,18 +98,23 @@ def get_test_counts():
 
     completed_tests = test_data.get("completedTests", 0)
     started_tests = test_data.get("startedTests", 0)
-    time_typing = test_data.get("timeTyping", 0)
-    total_seconds = int(time_typing)  # Truncate fractional seconds
-    hours, remainder = divmod(total_seconds, 3600)
+    time_typing = int(test_data.get("timeTyping", 0))
+
+    completion_rate = completed_tests / started_tests * 100 if started_tests > 0 else 0
+    hours, remainder = divmod(time_typing, 3600)
     minutes, seconds = divmod(remainder, 60)
 
-    print(f"  Started Tests: {started_tests}")
-    print(f"Completed Tests: {completed_tests}")
-    if started_tests > 0:
-        print(f"Completion Rate: {completed_tests / started_tests * 100:.2f}%")
-    else:
-        print("Completion Rate: N/A")
-    print(f"    Time Typing: {hours}:{minutes:02}:{seconds:02}")
+    print(
+        f"{'Tests':>13} -> "
+        f"{completed_tests} completed | "
+        f"{started_tests} started | "
+        f"{completion_rate:.2f}% completion"
+    )
+    print(
+        f"{'Time Typing':>13} -> "
+        f"{hours}h {minutes:02}m {seconds:02}s | "
+        f"~{time_typing/completed_tests:.0f}s/test"
+    )
 
 
 def main():
@@ -101,8 +122,8 @@ def main():
     get_api_key()
 
     print("\nMonkeytype info:")
-    get_streak_info()
     get_test_counts()
+    get_streak_info()
 
     print()
 

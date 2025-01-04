@@ -15,6 +15,8 @@ from zoneinfo import ZoneInfo
 
 import requests
 
+from xp_utils import format_level_details
+
 utc = ZoneInfo("UTC")
 
 # Constants
@@ -159,9 +161,9 @@ def show_profile():
     days_since_joined = (datetime.now(tz=utc) - joined).days
 
     print(
-        f"{'Profile':>11} -> joined: {joined.strftime('%d %b %Y')} "
+        f"{'Profile':>11} -> joined {joined.strftime('%d %b %Y')} "
         f"({days_since_joined} days ago) | "
-        f"xp: {data['xp']}"
+        f"{format_level_details(data['xp'])}"
     )
 
 
@@ -179,11 +181,3 @@ def main():
 
 if __name__ == "__main__":
     main()
-
-"""
-Monkeytype Info:
-         Tests : 8657 completed | 9191 started (94.1%) | time: 137h 17m (~57s/test)
-     Last Test : time 60  @ off  # off  english 1k | 2025-01-02 17:39:35 UTC (16s ago)
-       Results : 81.1 wpm 98% acc | pb: 89.2 wpm 95% acc
-        Streak : 22d (claimed | reset in 6h 20m) | best: 65d
-"""

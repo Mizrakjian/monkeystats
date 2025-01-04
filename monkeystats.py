@@ -82,7 +82,7 @@ def show_streak_info():
     time_left = format_time(reset - now)
 
     claimed = last_result.date() == now.date()
-    streak_status = "claimed — reset in" if claimed else "unclaimed — lost in"
+    streak_status = "claimed — resets in" if claimed else "unclaimed — lost in"
 
     print(
         f"{'Streaks':>11} -> "
@@ -120,8 +120,8 @@ def show_last_test_info():
     test_mode = data["mode"]
     mode_unit = data["mode2"]
     language = data["language"]
-    punctuation = "punctuation" if data.get("punctuation", False) else ""
-    numbers = "numbers" if data.get("numbers", False) else ""
+    punctuation = data.get("punctuation", False)
+    numbers = data.get("numbers", False)
 
     pb_params = {"mode": test_mode, "mode2": mode_unit}
     pb_data = fetch_data("/users/personalBests", params=pb_params)
@@ -130,19 +130,19 @@ def show_last_test_info():
         (pb["wpm"], pb["acc"])
         for pb in pb_data
         if pb["language"] == language
-        if pb["punctuation"] == bool(punctuation)
-        if pb["numbers"] == bool(numbers)
+        if pb.get("punctuation", False) == punctuation
+        if pb.get("numbers", False) == numbers
     )
 
     test_time = datetime.fromtimestamp(data["timestamp"] / 1000, tz=utc)
     time_str = test_time.strftime("%Y-%m-%d %H:%M:%S UTC")
     time_ago = format_time(datetime.now(tz=utc) - test_time)
 
-    test_attributes = " | ".join(
-        filter(None, [language, f"{test_mode} {mode_unit}", punctuation, numbers])
+    print(
+        f"{'Last Test':>11} -> {test_mode} {mode_unit} | "
+        f"@{'on' if punctuation else 'off'} #{'on' if numbers else 'off'} | "
+        f"{language} | {time_str} ({time_ago} ago)"
     )
-
-    print(f"{'Last Test':>11} -> {test_attributes} | {time_str} ({time_ago} ago)")
     print(
         f"{'Results':>11} -> {data['wpm']:.1f} wpm {data['acc']:.0f}% acc | "
         f"pb: {pb_wpm:.1f} wpm {pb_accuracy:.0f}% acc"
@@ -183,7 +183,7 @@ if __name__ == "__main__":
 """
 Monkeytype Info:
          Tests : 8657 completed | 9191 started (94.1%) | time: 137h 17m (~57s/test)
-     Last Test : english 1k | Timed (60s) | 2025-01-02 17:39:35 UTC (16s ago)
+     Last Test : time 60  @ off  # off  english 1k | 2025-01-02 17:39:35 UTC (16s ago)
        Results : 81.1 wpm 98% acc | pb: 89.2 wpm 95% acc
         Streak : 22d (claimed | reset in 6h 20m) | best: 65d
 """

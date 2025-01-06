@@ -6,7 +6,6 @@ GitHub Repo: https://github.com/monkeytypegame/monkeytype/blob/master/frontend/s
 """
 
 import math
-from textwrap import shorten
 
 
 def calculate_level(xp: int) -> int:
@@ -39,7 +38,7 @@ def shorten_number(number: int, places: int = 1) -> str:
     return f"{number / (1e3**magnitude):.{places}f}{suffix}"
 
 
-def format_level_details(xp: int) -> str:
+def level_details(xp: int) -> str:
     """Generate a summary string for the current level, XP, and progress."""
 
     level = calculate_level(xp)

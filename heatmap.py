@@ -1,10 +1,36 @@
 from datetime import datetime, timedelta
-from itertools import pairwise, zip_longest
+from itertools import batched, pairwise, zip_longest
 from math import ceil
 from zoneinfo import ZoneInfo
 
+from utils import ANSI
+
 # Constants
 TOTAL_DAYS = 7 * 53  # 7 rows (days) × 53 columns (weeks)
+# COLOR_MAP = [
+#     234,  # Level 0: Dark gray
+#     25,  # Level 1: Dim gray
+#     31,  # Level 2: Light blue
+#     38,  # Level 3: Light cyan
+#     6,  # Level 4: White
+#     3,  # Level 5: Yellow
+# ]
+# COLOR_MAP = [
+#     16,  # Level 0: Dark gray
+#     27,  # Level 1: Dim gray
+#     33,  # Level 2: Light blue
+#     39,  # Level 3: Light cyan
+#     45,  # Level 4: White
+#     3,  # Level 5: Yellow
+# ]
+COLOR_MAP = [
+    236,  # Level 0: Dark gray
+    239,  # Level 1: Dim gray
+    243,  # Level 2: Light blue
+    246,  # Level 3: Light cyan
+    252,  # Level 4: White
+    3,  # Level 5: Yellow
+]
 
 
 def calc_limits(data) -> list[int | float]:
@@ -20,37 +46,13 @@ def calc_limits(data) -> list[int | float]:
     return [0, ceil(mean / 2), ceil(mean), ceil(mean * 1.5), max_value - 1, max_value]
 
 
-def map_counts(data: list[int | None]) -> list[str]:
-    colors = [
-        234,  # Level 0: Dark gray
-        25,  # Level 1: Dim gray
-        31,  # Level 2: Light blue
-        38,  # Level 3: Light cyan
-        6,  # Level 4: White
-        3,  # Level 5: Yellow
-    ]
-    colors = [
-        16,  # Level 0: Dark gray
-        27,  # Level 1: Dim gray
-        33,  # Level 2: Light blue
-        39,  # Level 3: Light cyan
-        45,  # Level 4: White
-        3,  # Level 5: Yellow
-    ]
-    colors = [
-        236,  # Level 0: Dark gray
-        239,  # Level 1: Dim gray
-        243,  # Level 2: Light blue
-        246,  # Level 3: Light cyan
-        252,  # Level 4: White
-        3,  # Level 5: Yellow
-    ]
+def map_counts(data: list[int | None]) -> list[int]:
 
     limits = calc_limits(data)
 
     output = []
     for count in data:
-        for symbol, limit in zip(colors, limits):
+        for symbol, limit in zip(COLOR_MAP, limits):
             if count is None or count <= limit:
                 output.append(symbol)
                 break
@@ -58,10 +60,8 @@ def map_counts(data: list[int | None]) -> list[str]:
     return output
 
 
-def add_row_labels(rows: list[str]) -> list[str]:
-    # days = ["   ", "mon", "   ", "wed", "   ", "fri", "   "]
-    # return ["".join((f" {day} ", *row, "\033[0m")) for day, row in zip(days, rows)]
-    return [f" \033[48;5;0m {row}\033[48;5;0m \033[0m" for row in rows]
+def add_row_margin(rows: list[str]) -> list[str]:
+    return [f" {ANSI.bg(0,' ')}{row}{ANSI.bg(0,' ')}" for row in rows]
 
 
 def identify_month_starts(start_date: datetime):
@@ -93,7 +93,9 @@ def add_month_labels(start_date):
     output = [month + space for month, space in zip(month_names[::2], spacing)]
     output.append(month_names[::2][-1])  # Append the last month
 
-    return " \033[48;5;0m" + " " * (1 + month_starts[0]) + "".join(output) + "    " + "\033[0m"
+    line = " " * (1 + month_starts[0]) + "".join(output) + "    "
+
+    return f" {ANSI.bg(0, line)}"
 
 
 def pad_heatmap_data(data, start_date, today):
@@ -132,41 +134,24 @@ def get_start_date(last_test_date: datetime) -> datetime:
     return start_date - timedelta(days=start_date.weekday() + 1)
 
 
-def make_half_rows(rows) -> list[str]:
+def draw_rows(rows: list[tuple[int, ...]]) -> list[str]:
 
-    def plot(bg, fg) -> str:
-        fg_color = f"\033[38;5;{fg}m"
-        bg_color = f"\033[48;5;{bg}m"
-        reset = "\033[0m"
+    def plot(fg: int, bg: int) -> str:
+        esc = "\033["
+        fg_color = f"38;5;{fg};"
+        bg_color = f"48;5;{bg}m"
         block = "▄"
-        return f"{fg_color}{bg_color}{block}{reset}"
+        return f"{esc}{fg_color}{bg_color}{block}"
+
+    padded = [(0,) * 53] + rows
 
     output = []
 
-    padded = [(0,) * 53]
-    padded.extend(rows)
-
-    for top, bottom in zip_longest(padded[::2], padded[1::2], fillvalue=[0] * 53):
-        line = [plot(*colors) for colors in zip(top, bottom)]
+    for even, odd in batched(padded, 2):
+        line = [plot(fg, bg) for bg, fg in zip(even, odd)]
         output.append("".join(line))
 
     return output
-
-
-# def make_half_rows(rows) -> list[str]:
-
-#     output = []
-
-#     fg_color = "\033[38;5;"
-#     bg_color = "\033[48;5;"
-#     reset = "\033[0m"
-
-#     for top, bottom in zip_longest(rows[::2], rows[1::2], fillvalue=[0] * 53):
-#         line = [f"{fg_color}{fg}m{bg_color}{bg}m▀" for fg, bg in zip(top, bottom)]
-#         line.append(reset)
-#         output.append("".join(line))
-
-#     return output
 
 
 def activity_heatmap(activity: dict) -> str:
@@ -193,19 +178,18 @@ def activity_heatmap(activity: dict) -> str:
 
     # Split into weeks and transpose into rows
     weeks = [heatmap[i : i + 7] for i in range(0, TOTAL_DAYS, 7)]
-    rows = list(zip_longest(*weeks, fillvalue=" "))
+    rows = list(zip_longest(*weeks, fillvalue=0))
 
-    half_rows = make_half_rows(rows)
+    half_rows = draw_rows(rows)
 
     # Add weekday and month labels
     header_left = f" \033[48;5;0m last 12 months — {sum(d for d in data if d)} tests"
 
-    colors = [234, 25, 31, 38, 6, 3]
-    key = "".join(f"\033[38;5;{color}m■" for color in colors)
+    key = "".join(f"\033[38;5;{color}m■" for color in COLOR_MAP)
 
     header_right = f"less {key} more \033[0m"
     header = f"{header_left}{" "*(48-len(header_left))}{header_right}"
-    labeled_rows = add_row_labels(half_rows)
+    labeled_rows = add_row_margin(half_rows)
     month_labels = add_month_labels(start_date)
 
     return "\n".join((header, *labeled_rows, month_labels))
@@ -228,42 +212,3 @@ if __name__ == "__main__":
     test_month_labels(datetime(2025, 1, 6))
     test_month_labels(datetime(2025, 1, 10))
     test_month_labels(datetime(2025, 1, 28))
-
-    def generate_heatmap(data, margin_size=2):
-        """
-        Generates a heatmap with a margin using ANSI color codes.
-        :param data: 2D list of activity levels (0-4).
-        :param margin_size: Width of the margin around the heatmap.
-        """
-        # Define color mappings
-        heatmap_colors = {
-            "margin": "\033[48;5;0m ",  # Chart margin
-            0: "\033[0m ",  # Level 0: Reset
-            1: "\033[48;5;8m ",  # Level 1: Dim gray
-            2: "\033[48;5;4m ",  # Level 2: Light blue
-            3: "\033[48;5;6m ",  # Level 3: Light cyan
-            4: "\033[48;5;7m ",  # Level 4: White
-            "peak": "\033[48;5;11m*",  # Peak activity
-        }
-        reset = "\033[0m"
-
-        # Add margins and render the heatmap
-        margin_row = heatmap_colors["margin"] * (len(data[0]) + 2 * margin_size)
-        print(margin_row + reset)
-        for row in data:
-            print(heatmap_colors["margin"] * margin_size, end="")  # Left margin
-            for level in row:
-                print(heatmap_colors[level], end="")
-            print(heatmap_colors["margin"] * margin_size + reset)  # Right margin
-        print(margin_row + reset)
-
-    # Example heatmap data
-    heatmap_data = [
-        [0, 0, 1, 1, 2, 2, 3, 3, 4, 4],
-        [0, 0, 1, 1, 2, 3, 3, 4, 4, 4],
-        [0, 1, 1, 2, 2, 3, 3, 4, 4, 4],
-        [1, 1, 2, 2, 3, 3, 4, 4, 4, 4],
-    ]
-
-    # Generate the heatmap
-    generate_heatmap(heatmap_data)

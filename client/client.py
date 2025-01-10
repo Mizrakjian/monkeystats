@@ -1,9 +1,8 @@
-import os
 from zoneinfo import ZoneInfo
 
 import requests
 
-from load_env_file import load_env_file
+from config import load_env_file
 
 
 class MonkeytypeClient:

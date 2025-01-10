@@ -9,13 +9,13 @@ def load_env_file() -> dict[str, str]:
         FileNotFoundError: If the `.env` file does not exist.
     """
     # Determine the directory of the currently executing script
-    script_dir = Path(__file__).parent
-    env_file = script_dir / ".env"
+    mtstats = Path(__file__).parent.parent
+    env_file = mtstats / ".env"
 
     settings = dict()
 
     if not env_file.is_file():
-        raise FileNotFoundError(f"No `.env` file found in: {script_dir}")
+        raise FileNotFoundError(f"No `.env` file found in: {mtstats}")
 
     with env_file.open("r") as file:
         for line in file:

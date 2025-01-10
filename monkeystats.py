@@ -12,27 +12,11 @@ date: 2024-12-29
 from datetime import datetime, timedelta
 from zoneinfo import ZoneInfo
 
+from client import MonkeytypeClient
 from heatmap import activity_heatmap
-from monkeytype_client import MonkeytypeClient
-from xp_utils import level_details
+from utils import calculate_level, format_time, remaining_level_xp, shorten_number, total_level_xp
 
 utc = ZoneInfo("UTC")
-
-
-def format_time(elapsed: timedelta) -> str:
-    """Format a timedelta duration as a human-readable string."""
-
-    total_seconds = int(elapsed.total_seconds())
-    hours, remainder = divmod(total_seconds, 3600)
-    minutes, seconds = divmod(remainder, 60)
-
-    if total_seconds < 60:
-        return f"{seconds}s"
-
-    if total_seconds < 3600:
-        return f"{minutes}m"
-
-    return f"{hours}h {minutes:02d}m"
 
 
 def streaks(data: dict) -> str:
@@ -126,6 +110,21 @@ def profile(data: dict, user: str) -> str:
         f"  joined: {joined.strftime('%d %b %Y')} "
         f"({days_since_joined} days ago)\n"
         f"  {level_details(data['xp'])}"
+    )
+
+
+def level_details(xp: int) -> str:
+    """Generate a summary string for the current level, XP, and progress."""
+
+    level = calculate_level(xp)
+    current_xp = xp - total_level_xp(level)
+    max_xp = remaining_level_xp(level)
+    needed_xp = max_xp - current_xp
+
+    return (
+        f" level: {level} | {shorten_number(xp)} xp | "
+        f"{shorten_number(current_xp)}/{shorten_number(max_xp)} "
+        f"({shorten_number(needed_xp)} to go)"
     )
 
 

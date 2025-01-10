@@ -50,10 +50,12 @@ def streaks(data: dict) -> str:
 
     claimed = last_result.date() == now.date()
     streak_status = "claimed — resets in" if claimed else "unclaimed — lost in"
+    color_on = "\033[38;5;2m" if claimed else "\033[38;5;1m"
+    reset = "\033[0m"
 
     return (
         f"  streak: "
-        f"{current_streak} days ({streak_status} {time_left}) | "
+        f"{current_streak} days ({color_on}{streak_status} {time_left}{reset}) | "
         f"best: {best_streak} days"
     )
 
@@ -70,10 +72,10 @@ def test_counts(data: dict) -> str:
     time_str = format_time(timedelta(seconds=time_typing))
 
     return (
-        f"  tests: "
+        f"   tests: "
         f"{started_tests} started | "
-        f"{completed_tests} completed ({completion_rate:.1f}%) | "
-        f"time: {time_str} (~{time_typing/completed_tests:.0f}s/test)"
+        f"{completed_tests} completed ({completion_rate:.1f}%)\n"
+        f"    time: {time_str} (~{time_typing/completed_tests:.0f}s/test)"
     )
 
 
@@ -121,9 +123,9 @@ def profile(data: dict, user: str) -> str:
 
     return (
         f"Monkeytype info for {user}:\n\n"
-        f"  joined {joined.strftime('%d %b %Y')} "
-        f"({days_since_joined} days ago) | "
-        f"{level_details(data['xp'])}"
+        f"  joined: {joined.strftime('%d %b %Y')} "
+        f"({days_since_joined} days ago)\n"
+        f"  {level_details(data['xp'])}"
     )
 
 
@@ -134,13 +136,16 @@ def main():
 
     output = [
         profile(client.profile(), client.user),
-        test_counts(client.stats()),
-        activity_heatmap(client.activity()),
-        last_test(client),
         streaks(client.streaks()),
+        "",
+        test_counts(client.stats()),
+        "",
+        activity_heatmap(client.activity()),
+        "",
+        last_test(client),
     ]
 
-    print("\n", "\n\n".join(output), "\n")
+    print("\n", "\n".join(output), "\n", sep="")
 
 
 if __name__ == "__main__":

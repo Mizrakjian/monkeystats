@@ -10,9 +10,9 @@ class MonkeytypeClient:
     """Client for interacting with the Monkeytype API."""
 
     def __init__(self, base_url: str = "https://api.monkeytype.com"):
-        load_env_file()  # Load environment variables from .env file
-        self.api_key = os.getenv("MONKEYTYPE_API_KEY", "")
-        self.user = os.getenv("MONKEYTYPE_USER", "")
+        env = load_env_file()  # Load key and user variables from .env file
+        self.api_key = env.get("MONKEYTYPE_API_KEY", "")
+        self.user = env.get("MONKEYTYPE_USER", "")
         if not (self.api_key and self.user):
             raise ValueError(
                 "MONKEYTYPE_API_KEY and MONKEYTYPE_USER must be set in environment variables."

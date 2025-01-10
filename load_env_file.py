@@ -1,10 +1,9 @@
-import os
 from pathlib import Path
 
 
-def load_env_file():
+def load_env_file() -> dict[str, str]:
     """
-    Load environment variables from a `.env` file located in the same directory as this script.
+    Return key-value pairs found in `.env`, a file located in the same directory as this script.
 
     Raises:
         FileNotFoundError: If the `.env` file does not exist.
@@ -13,21 +12,26 @@ def load_env_file():
     script_dir = Path(__file__).parent
     env_file = script_dir / ".env"
 
+    settings = dict()
+
     if not env_file.is_file():
-        raise FileNotFoundError(f"No `.env` file found in the script directory: {script_dir}")
+        raise FileNotFoundError(f"No `.env` file found in: {script_dir}")
 
     with env_file.open("r") as file:
         for line in file:
             line = line.strip()
-            if line.startswith("#") or not line:  # Ignore comments and empty lines
+
+            # Only process lines with key=value format, and ignore comments and empty lines
+            if "=" not in line or line.startswith("#") or not line:
                 continue
-            if "=" in line:  # Only process lines with key=value format
-                key, value = line.split("=", 1)
-                key, value = key.strip(), value.strip()
-                # Remove surrounding quotes from the value, if any
-                if value.startswith('"') and value.endswith('"'):
-                    value = value[1:-1]
-                elif value.startswith("'") and value.endswith("'"):
-                    value = value[1:-1]
-                # Set the environment variable
-                os.environ[key] = value
+
+            key, value = line.split("=", 1)
+            key, value = key.strip(), value.strip()
+
+            # Remove surrounding quotes from the value, if any
+            if value.startswith(('"', "'")) and value[-1] == value[0]:
+                value = value[1:-1]
+
+            settings[key] = value
+
+    return settings

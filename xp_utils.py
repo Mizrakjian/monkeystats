@@ -47,7 +47,7 @@ def level_details(xp: int) -> str:
     needed_xp = max_xp - current_xp
 
     return (
-        f"level {level} | {shorten_number(xp)} xp | "
+        f" level: {level} | {shorten_number(xp)} xp | "
         f"{shorten_number(current_xp)}/{shorten_number(max_xp)} "
         f"({shorten_number(needed_xp)} to go)"
     )

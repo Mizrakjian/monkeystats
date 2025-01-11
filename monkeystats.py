@@ -12,7 +12,7 @@ date: 2024-12-29
 from datetime import datetime, timedelta
 from zoneinfo import ZoneInfo
 
-from client import MonkeytypeClient, Profile
+from client import MonkeytypeClient, Profile, Streaks
 from heatmap import activity_heatmap
 from utils import format_time, shorten_number
 
@@ -22,28 +22,26 @@ NOW = datetime.now(tz=utc)
 ALIGN = 9  # Alignment for row labels
 
 
-def streaks(data: dict) -> str:
+def streaks(data: Streaks) -> str:
     """Fetch and display the user's current streak information."""
 
-    current_streak = data["length"]
-    best_streak = data["maxLength"]
-    last_result = datetime.fromtimestamp(data["lastResultTimestamp"] / 1000, tz=utc)
-
-    now = datetime.now(tz=utc)
-    tomorrow = now.date() + timedelta(days=1)
+    tomorrow = NOW.date() + timedelta(days=1)
     midnight = datetime.min.time()
     reset = datetime.combine(tomorrow, midnight, tzinfo=utc)
-    time_left = format_time(reset - now)
+    time_left = format_time(reset - NOW)
 
-    claimed = last_result.date() == now.date()
-    streak_status = "claimed — resets in" if claimed else "unclaimed — lost in"
-    color_on = "\033[38;5;2m" if claimed else "\033[38;5;1m"
-    reset = "\033[0m"
+    streak_status, style = (
+        ("claimed — resets in", "\033[38;5;2;1m")
+        if data.claimed
+        else ("unclaimed — lost in", "\033[38;5;1;1m")
+    )
+
+    style_reset = "\033[0m"
 
     return (
-        f"  streak: "
-        f"{current_streak} days ({color_on}{streak_status} {time_left}{reset}) | "
-        f"best: {best_streak} days"
+        f"{'streak:':>{ALIGN}} "
+        f"{data.current_length} days ({style}{streak_status} {time_left}{style_reset}) | "
+        f"best: {data.max_length} days"
     )
 
 

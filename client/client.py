@@ -2,7 +2,7 @@ from zoneinfo import ZoneInfo
 
 import requests
 
-from client.models import Profile
+from client.models import Profile, Streaks
 from config import load_env_file
 
 
@@ -45,6 +45,11 @@ class MonkeytypeClient:
         data = self.fetch_data(f"/users/{self.user}/profile")
         return Profile.from_api(data)
 
+    def streaks(self) -> Streaks:
+        """Retrieve the user's streak information."""
+        data = self.fetch_data(f"/users/streak")
+        return Streaks.from_api(data)
+
     def stats(self) -> dict:
         """Retrieve the user's test count stats."""
         return self.fetch_data(f"/users/stats")
@@ -70,7 +75,3 @@ class MonkeytypeClient:
         """
         params = {"mode": test_mode, "mode2": mode_unit}
         return self.fetch_data("/users/personalBests", params=params)
-
-    def streaks(self) -> dict:
-        """Retrieve the user's streak information."""
-        return self.fetch_data(f"/users/streak")

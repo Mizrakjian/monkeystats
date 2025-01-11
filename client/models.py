@@ -5,6 +5,8 @@ from zoneinfo import ZoneInfo
 
 from utils import get_level, get_level_current_xp, get_level_max_xp
 
+utc = ZoneInfo("UTC")
+
 
 @dataclass
 class Profile:
@@ -27,4 +29,24 @@ class Profile:
             username=data["name"],
             date_joined=datetime.fromtimestamp(data["addedAt"] / 1000, tz=ZoneInfo("UTC")),
             xp=data["xp"],
+        )
+
+
+@dataclass
+class Streaks:
+    last_result: datetime
+    current_length: int
+    max_length: int
+
+    claimed: bool = field(init=False)
+
+    def __post_init__(self):
+        self.claimed = self.last_result.date() == datetime.now(tz=utc).date()
+
+    @classmethod
+    def from_api(cls, data: dict) -> Self:
+        return cls(
+            last_result=datetime.fromtimestamp(data["lastResultTimestamp"] / 1000, tz=utc),
+            current_length=data["length"],
+            max_length=data["maxLength"],
         )

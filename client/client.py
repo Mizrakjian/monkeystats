@@ -2,6 +2,7 @@ from zoneinfo import ZoneInfo
 
 import requests
 
+from client.models import Profile
 from config import load_env_file
 
 
@@ -39,9 +40,10 @@ class MonkeytypeClient:
 
     # --- Getters for specific endpoints ---
 
-    def profile(self) -> dict:
+    def profile(self) -> Profile:
         """Retrieve the user's profile information."""
-        return self.fetch_data(f"/users/{self.user}/profile")
+        data = self.fetch_data(f"/users/{self.user}/profile")
+        return Profile.from_api(data)
 
     def stats(self) -> dict:
         """Retrieve the user's test count stats."""

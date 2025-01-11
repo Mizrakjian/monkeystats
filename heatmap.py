@@ -1,5 +1,5 @@
 from datetime import datetime, timedelta
-from itertools import batched, pairwise, zip_longest
+from itertools import batched, zip_longest
 from math import ceil
 from zoneinfo import ZoneInfo
 
@@ -33,7 +33,7 @@ COLOR_MAP = [
 ]
 
 
-def calc_limits(data) -> list[int | float]:
+def calc_limits(data: list[int | None]) -> list[int]:
     filtered = [v for v in data if v]
 
     sorted_data = sorted(filtered)
@@ -60,45 +60,27 @@ def map_counts(data: list[int | None]) -> list[int]:
     return output
 
 
-def add_row_margin(rows: list[str]) -> list[str]:
-    return [f" {ANSI.bg(0,' ')}{row}{ANSI.bg(0,' ')}" for row in rows]
+def indent_and_margin(rows: list[str]) -> list[str]:
+    indent = " "
+    return [f"{indent}{ANSI.bg(0,' ')}{row}{ANSI.bg(0,' ')}" for row in rows]
 
 
-def identify_month_starts(start_date: datetime):
-    months = ["jan", "feb", "mar", "apr", "may", "jun", "jul", "aug", "sep", "oct", "nov", "dec"]
-    month_names = []
-    month_starts = []
+def month_labels(start_date: datetime) -> str:
 
-    for i in range(6, TOTAL_DAYS, 7):
-        week_end = start_date + timedelta(days=i)
+    output = [" "] * 53
+
+    label_count = 0
+    for i in range(51):
+        week_end = start_date + timedelta(weeks=i, days=6)
         if week_end.day < 8:
-            month_names.append(months[week_end.month - 1])
-            month_starts.append(i // 7)
+            if label_count % 2 == 0:
+                output[i : i + 3] = week_end.strftime("%b").lower()
+            label_count += 1
 
-    return month_starts, month_names
-
-
-def add_month_labels(start_date):
-    """
-    Generate dynamically spaced month labels for the heatmap.
-    Alternate months are shown for space / clarity.
-    """
-    # Get month start indices and names
-    month_starts, month_names = identify_month_starts(start_date)
-
-    # Compute spacing between months (for alternate months only)
-    spacing = [" " * ((b - a) - 3) for a, b in pairwise(month_starts[::2])]
-
-    # Interleave months and spacing
-    output = [month + space for month, space in zip(month_names[::2], spacing)]
-    output.append(month_names[::2][-1])  # Append the last month
-
-    line = " " * (1 + month_starts[0]) + "".join(output) + "    "
-
-    return f" {ANSI.bg(0, line)}"
+    return ANSI.bg(0, "".join(output))
 
 
-def pad_heatmap_data(data, start_date, today):
+def pad_heatmap_data(data, start_date: datetime, today: datetime) -> list[int | None]:
     """
     Pads data to ensure it spans 53 weeks starting on a Sunday, with the last week being partial if needed.
 
@@ -183,16 +165,15 @@ def activity_heatmap(activity: dict) -> str:
     half_rows = draw_rows(rows)
 
     # Add weekday and month labels
-    header_left = f" \033[48;5;0m last 12 months — {sum(d for d in data if d)} tests"
-
+    header_left = f"\033[48;5;0mlast 12 months — {sum(d for d in data if d)} tests"
     key = "".join(f"\033[38;5;{color}m■" for color in COLOR_MAP)
+    header_right = f"less {key} more\033[0m"
+    header = f"{header_left}{" "*10}{header_right}"
+    footer = month_labels(start_date)
 
-    header_right = f"less {key} more \033[0m"
-    header = f"{header_left}{" "*(48-len(header_left))}{header_right}"
-    labeled_rows = add_row_margin(half_rows)
-    month_labels = add_month_labels(start_date)
+    output = indent_and_margin([header, *half_rows, footer])
 
-    return "\n".join((header, *labeled_rows, month_labels))
+    return "\n".join(output)
 
 
 # Test Function

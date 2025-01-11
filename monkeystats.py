@@ -12,11 +12,14 @@ date: 2024-12-29
 from datetime import datetime, timedelta
 from zoneinfo import ZoneInfo
 
-from client import MonkeytypeClient
+from client import MonkeytypeClient, Profile
 from heatmap import activity_heatmap
-from utils import calculate_level, format_time, remaining_level_xp, shorten_number, total_level_xp
+from utils import format_time, shorten_number
 
 utc = ZoneInfo("UTC")
+NOW = datetime.now(tz=utc)
+
+ALIGN = 9  # Alignment for row labels
 
 
 def streaks(data: dict) -> str:
@@ -99,30 +102,23 @@ def last_test(client: MonkeytypeClient) -> str:
     )
 
 
-def profile(data: dict, user: str) -> str:
+def profile(data: Profile) -> str:
     """Format the user's profile information."""
-
-    joined = datetime.fromtimestamp(data["addedAt"] / 1000, tz=utc)
-    days_since_joined = (datetime.now(tz=utc) - joined).days
-
-    return (
-        f"Monkeytype info for {user}:\n\n"
-        f"  joined: {joined.strftime('%d %b %Y')} "
-        f"({days_since_joined} days ago)\n"
-        f"  {level_details(data['xp'])}"
-    )
-
-
-def level_details(xp: int) -> str:
     """Generate a summary string for the current level, XP, and progress."""
 
-    level = calculate_level(xp)
-    current_xp = xp - total_level_xp(level)
-    max_xp = remaining_level_xp(level)
+    joined = data.date_joined
+    days_since_joined = (NOW - joined).days
+
+    current_xp = data.level_current_xp
+    max_xp = data.level_max_xp
     needed_xp = max_xp - current_xp
 
     return (
-        f" level: {level} | {shorten_number(xp)} xp | "
+        f"Monkeytype info for {data.username}:\n\n"
+        f"{'joined:':>{ALIGN}} {joined.strftime('%d %b %Y')} "
+        f"({days_since_joined} days ago)\n"
+        f"{'level:':>{ALIGN}} {data.level} | "
+        f"{shorten_number(data.xp)} xp | "
         f"{shorten_number(current_xp)}/{shorten_number(max_xp)} "
         f"({shorten_number(needed_xp)} to go)"
     )
@@ -134,7 +130,7 @@ def main():
     client = MonkeytypeClient()
 
     output = [
-        profile(client.profile(), client.user),
+        profile(client.profile()),
         streaks(client.streaks()),
         "",
         test_counts(client.stats()),

@@ -6,6 +6,7 @@ from zoneinfo import ZoneInfo
 from utils import ANSI
 
 # Constants
+ansi = ANSI()
 TOTAL_DAYS = 7 * 53  # 7 rows (days) × 53 columns (weeks)
 # COLOR_MAP = [
 #     234,  # Level 0: Dark gray
@@ -62,7 +63,8 @@ def map_counts(data: list[int | None]) -> list[int]:
 
 def indent_and_margin(rows: list[str]) -> list[str]:
     indent = " "
-    return [f"{indent}{ANSI.bg(0,' ')}{row}{ANSI.bg(0,' ')}" for row in rows]
+    margin = ansi.bg(0).apply(indent)
+    return [f"{indent}{margin}{row}{margin}" for row in rows]
 
 
 def month_labels(start_date: datetime) -> str:
@@ -77,7 +79,7 @@ def month_labels(start_date: datetime) -> str:
                 output[i : i + 3] = week_end.strftime("%b").lower()
             label_count += 1
 
-    return ANSI.bg(0, "".join(output))
+    return ansi.bg(0).apply("".join(output))
 
 
 def pad_heatmap_data(data, start_date: datetime, today: datetime) -> list[int | None]:
@@ -119,19 +121,16 @@ def get_start_date(last_test_date: datetime) -> datetime:
 def draw_rows(rows: list[tuple[int, ...]]) -> list[str]:
 
     def plot(fg: int, bg: int) -> str:
-        esc = "\033["
-        fg_color = f"38;5;{fg};"
-        bg_color = f"48;5;{bg}m"
         block = "▄"
-        return f"{esc}{fg_color}{bg_color}{block}"
+        return f"{ansi.fg(fg).bg(bg)}{block}"
 
     padded = [(0,) * 53] + rows
 
     output = []
 
     for even, odd in batched(padded, 2):
-        line = [plot(fg, bg) for bg, fg in zip(even, odd)]
-        output.append("".join(line))
+        line = "".join(plot(fg, bg) for bg, fg in zip(even, odd))  # Top is bg color, bottom is fg color
+        output.append(line + ansi.reset)
 
     return output
 
@@ -165,9 +164,9 @@ def activity_heatmap(activity: dict) -> str:
     half_rows = draw_rows(rows)
 
     # Add weekday and month labels
-    header_left = f"\033[48;5;0mlast 12 months — {sum(d for d in data if d)} tests"
-    key = "".join(f"\033[38;5;{color}m■" for color in COLOR_MAP)
-    header_right = f"less {key} more\033[0m"
+    header_left = f"{ansi.bg.black}last 12 months — {sum(d for d in data if d)} tests"
+    key = "".join(f"{ansi.fg(color)}■" for color in COLOR_MAP)
+    header_right = f"less {key} more{ansi.reset}"
     header = f"{header_left}{" "*10}{header_right}"
     footer = month_labels(start_date)
 

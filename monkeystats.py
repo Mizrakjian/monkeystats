@@ -101,8 +101,9 @@ def last_test(client: MonkeytypeClient) -> str:
 
 
 def profile(data: Profile) -> str:
-    """Format the user's profile information."""
-    """Generate a summary string for the current level, XP, and progress."""
+    """
+    Format the user's profile information. Including the current level, XP, and progress.
+    """
 
     joined = data.date_joined
     days_since_joined = (NOW - joined).days

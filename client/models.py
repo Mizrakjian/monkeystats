@@ -20,7 +20,7 @@ class Profile:
 
     def __post_init__(self):
         self.level = get_level(self.xp)
-        self.level_current_xp = get_level_current_xp(self.level)
+        self.level_current_xp = get_level_current_xp(self.xp)
         self.level_max_xp = get_level_max_xp(self.level)
 
     @classmethod

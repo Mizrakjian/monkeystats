@@ -1,8 +1,6 @@
 class ANSI:
     """Utility class for generating optimized ANSI escape sequences with chainable attributes."""
 
-    ESC = "\033["
-
     def __init__(self):
         self.codes = []  # Current list of pending ANSI codes
         self.state = {}  # Retained state for fg, bg, and other styles
@@ -68,9 +66,9 @@ class ANSI:
     @property
     def reset(self):
         """Return the ANSI reset code and clear the current codes and state."""
-        self.codes = []
+        self.codes = ["0"]
         self.state = {}
-        return f"{self.ESC}0m"
+        return str(self)
 
     def apply(self, text: str) -> str:
         """
@@ -83,9 +81,13 @@ class ANSI:
 
     def __str__(self):
         """Return the accumulated ANSI codes as a single sequence."""
+
+        ESC = "\033["
+
         if not self.codes:
             return ""
-        sequence = f"{self.ESC}{';'.join(self.codes)}m"
+
+        sequence = f"{ESC}{';'.join(self.codes)}m"
         self.codes = []  # Clear the codes after generating the sequence
         return sequence
 
@@ -180,14 +182,14 @@ def display_grouped_palette():
     for i in range(16):
         print_color(i)
         if (i + 1) % 8 == 0:
-            print()
+            print(ansi.reset)
     print()
 
     print("216-Color RGB Cube (16–231):")
     for i in range(16, 232):
         print_color(i)
         if (i - 16 + 1) % 6 == 0:
-            print()
+            print(ansi.reset)
         if (i - 16 + 1) % 36 == 0:
             print()
 
@@ -195,7 +197,7 @@ def display_grouped_palette():
     for i in range(232, 256):
         print_color(i)
         if (i - 16 + 1) % 6 == 0:
-            print()
+            print(ansi.reset)
     print()
 
 

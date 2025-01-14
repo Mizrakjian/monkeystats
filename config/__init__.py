@@ -1,3 +1,3 @@
-from .loader import load_env_file
+from .loader import load_auth
 
-__all__ = ["load_env_file"]
+__all__ = ["load_auth"]

@@ -1,37 +1,25 @@
+import tomllib
 from pathlib import Path
 
 
-def load_env_file() -> dict[str, str]:
+def load_auth(filename: str = ".auth") -> dict[str, str]:
     """
-    Return key-value pairs found in `.env`, a file located in the same directory as this script.
+    Load authentication credentials from a TOML file.
+
+    Args:
+        filename (str): Name of the authentication file (default: '.auth').
+
+    Returns:
+        dict[str, str]: A dictionary containing 'api_key' and 'username'.
 
     Raises:
-        FileNotFoundError: If the `.env` file does not exist.
+        FileNotFoundError: If the file does not exist.
+        tomllib.TOMLDecodeError: If the file content is not valid TOML.
     """
-    # Determine the directory of the currently executing script
-    mtstats = Path(__file__).parent.parent
-    env_file = mtstats / ".env"
+    auth_file = Path(__file__).parent.parent / filename
 
-    settings = dict()
+    if not auth_file.is_file():
+        raise FileNotFoundError(f"Authentication file `{filename}` not found in {auth_file.parent}")
 
-    if not env_file.is_file():
-        raise FileNotFoundError(f"No `.env` file found in: {mtstats}")
-
-    with env_file.open("r") as file:
-        for line in file:
-            line = line.strip()
-
-            # Only process lines with key=value format, and ignore comments and empty lines
-            if "=" not in line or line.startswith("#") or not line:
-                continue
-
-            key, value = line.split("=", 1)
-            key, value = key.strip(), value.strip()
-
-            # Remove surrounding quotes from the value, if any
-            if value.startswith(('"', "'")) and value[-1] == value[0]:
-                value = value[1:-1]
-
-            settings[key] = value
-
-    return settings
+    with auth_file.open("rb") as file:  # Use 'rb' mode as tomllib requires bytes
+        return tomllib.load(file)

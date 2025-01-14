@@ -3,16 +3,16 @@ from zoneinfo import ZoneInfo
 import requests
 
 from client.models import Profile, Streaks
-from config import load_env_file
+from config import load_auth
 
 
 class MonkeytypeClient:
     """Client for interacting with the Monkeytype API."""
 
     def __init__(self, base_url: str = "https://api.monkeytype.com"):
-        env = load_env_file()  # Load key and user variables from .env file
-        self.api_key = env.get("MONKEYTYPE_API_KEY", "")
-        self.user = env.get("MONKEYTYPE_USER", "")
+        auth = load_auth()  # Load key and user variables from auth file
+        self.api_key = auth.get("MONKEYTYPE_API_KEY", "")
+        self.user = auth.get("MONKEYTYPE_USER", "")
         if not (self.api_key and self.user):
             raise ValueError(
                 "MONKEYTYPE_API_KEY and MONKEYTYPE_USER must be set in environment variables."

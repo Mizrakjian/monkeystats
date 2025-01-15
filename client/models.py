@@ -27,7 +27,7 @@ class Profile:
     def from_api(cls, data: dict) -> Self:
         return cls(
             username=data["name"],
-            date_joined=datetime.fromtimestamp(data["addedAt"] / 1000, tz=ZoneInfo("UTC")),
+            date_joined=datetime.fromtimestamp(data["addedAt"] / 1000, tz=utc),
             xp=data["xp"],
         )
 

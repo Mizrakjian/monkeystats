@@ -15,7 +15,9 @@ from zoneinfo import ZoneInfo
 from client import MonkeytypeClient, Profile, Streaks
 from heatmap import activity_heatmap
 from utils import format_time, shorten_number
+from utils.ansi import ANSI
 
+ansi = ANSI()
 utc = ZoneInfo("UTC")
 NOW = datetime.now(tz=utc)
 
@@ -30,17 +32,12 @@ def streaks(data: Streaks) -> str:
     reset = datetime.combine(tomorrow, midnight, tzinfo=utc)
     time_left = format_time(reset - NOW)
 
-    streak_status, style = (
-        ("claimed — resets in", "\033[38;5;2;1m")
-        if data.claimed
-        else ("unclaimed — lost in", "\033[38;5;1;1m")
-    )
-
-    style_reset = "\033[0m"
+    style = ansi.fg.green.bold if data.claimed else ansi.fg.red.bold
+    streak_status = "claimed — resets in" if data.claimed else "unclaimed — lost in"
 
     return (
         f"{'streak:':>{ALIGN}} "
-        f"{data.current_length} days ({style}{streak_status} {time_left}{style_reset}) | "
+        f"{data.current_length} days ({style}{streak_status} {time_left}{ansi.reset}) | "
         f"best: {data.max_length} days"
     )
 

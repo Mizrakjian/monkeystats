@@ -2,7 +2,7 @@ from zoneinfo import ZoneInfo
 
 import requests
 
-from client.models import Profile, Streaks
+from client.models import Profile, Stats, Streaks
 from config import load_auth
 
 
@@ -50,9 +50,10 @@ class MonkeytypeClient:
         data = self.fetch_data(f"/users/streak")
         return Streaks.from_api(data)
 
-    def stats(self) -> dict:
+    def stats(self) -> Stats:
         """Retrieve the user's test count stats."""
-        return self.fetch_data(f"/users/stats")
+        data = self.fetch_data(f"/users/stats")
+        return Stats.from_api(data)
 
     def activity(self) -> dict:
         """Retrieve the user's current test activity."""

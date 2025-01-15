@@ -50,3 +50,18 @@ class Streaks:
             current_length=data["length"],
             max_length=data["maxLength"],
         )
+
+
+@dataclass
+class Stats:
+    tests_completed: int
+    tests_started: int
+    time_typing: int
+
+    @classmethod
+    def from_api(cls, data: dict) -> Self:
+        return cls(
+            tests_completed=data["completedTests"],
+            tests_started=data["startedTests"],
+            time_typing=data["timeTyping"],
+        )

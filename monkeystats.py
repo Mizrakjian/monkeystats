@@ -13,6 +13,7 @@ from datetime import datetime, timedelta
 from zoneinfo import ZoneInfo
 
 from client import MonkeytypeClient, Profile, Streaks
+from client.models import Stats
 from heatmap import activity_heatmap
 from utils import format_time, shorten_number
 from utils.ansi import ANSI
@@ -42,22 +43,28 @@ def streaks(data: Streaks) -> str:
     )
 
 
-def test_counts(data: dict) -> str:
+def test_counts(client: MonkeytypeClient) -> str:
     """Fetch and display the user's current test counts."""
 
-    completed_tests = data["completedTests"]
-    started_tests = data["startedTests"]
-    time_typing = data["timeTyping"]
+    data = client.stats()
+    joined = client.profile().date_joined
+    days_since_joined = (NOW - joined).days
+
+    completed_tests = data.tests_completed
+    started_tests = data.tests_started
+    time_typing = data.time_typing
 
     completion_rate = completed_tests / started_tests * 100 if started_tests else 0
 
     time_str = format_time(timedelta(seconds=time_typing))
+    time_per_day = format_time(timedelta(seconds=time_typing / days_since_joined))
+    time_per_test = format_time(timedelta(seconds=time_typing / completed_tests))
 
     return (
-        f"   tests: "
+        f"{'tests:':>{ALIGN}} "
         f"{started_tests} started | "
         f"{completed_tests} completed ({completion_rate:.1f}%)\n"
-        f"    time: {time_str} (~{time_typing/completed_tests:.0f}s/test)"
+        f"{'time:':>{ALIGN}} {time_str} | ~{time_per_day}/day | ~{time_per_test}/test"
     )
 
 
@@ -129,7 +136,7 @@ def main():
         profile(client.profile()),
         streaks(client.streaks()),
         "",
-        test_counts(client.stats()),
+        test_counts(client),
         "",
         activity_heatmap(client.activity()),
         "",

@@ -1,8 +1,9 @@
 from .client import MonkeytypeClient
-from .models import Profile, Streaks
+from .models import Profile, Stats, Streaks
 
 __all__ = [
     "MonkeytypeClient",
     "Profile",
     "Streaks",
+    "Stats",
 ]

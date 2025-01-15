@@ -25,6 +25,6 @@ def format_time(elapsed: timedelta) -> str:
         return f"{seconds}s"
 
     if total_seconds < 3600:
-        return f"{minutes}m"
+        return f"{minutes}m {seconds:02d}s"
 
     return f"{hours}h {minutes:02d}m"

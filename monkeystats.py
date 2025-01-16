@@ -13,7 +13,6 @@ from datetime import datetime, timedelta
 from zoneinfo import ZoneInfo
 
 from client import MonkeytypeClient, Profile, Streaks
-from client.models import Stats
 from heatmap import activity_heatmap
 from utils import format_time, shorten_number
 from utils.ansi import ANSI
@@ -43,16 +42,15 @@ def streaks(data: Streaks) -> str:
     )
 
 
-def test_counts(client: MonkeytypeClient) -> str:
+def test_counts(data: Profile) -> str:
     """Fetch and display the user's current test counts."""
 
-    data = client.stats()
-    joined = client.profile().date_joined
+    joined = data.date_joined
     days_since_joined = (NOW - joined).days
 
-    completed_tests = data.tests_completed
-    started_tests = data.tests_started
-    time_typing = data.time_typing
+    completed_tests = data.tests.completed
+    started_tests = data.tests.started
+    time_typing = data.tests.time_typing
 
     completion_rate = completed_tests / started_tests * 100 if started_tests else 0
 
@@ -104,7 +102,7 @@ def last_test(client: MonkeytypeClient) -> str:
     )
 
 
-def profile(data: Profile) -> str:
+def joined(data: Profile) -> str:
     """
     Format the user's profile information. Including the current level, XP, and progress.
     """
@@ -112,14 +110,19 @@ def profile(data: Profile) -> str:
     joined = data.date_joined
     days_since_joined = (NOW - joined).days
 
+    return f"{'joined:':>{ALIGN}} {joined.strftime('%d %b %Y')} " f"({days_since_joined} days ago)"
+
+
+def level(data: Profile) -> str:
+    """
+    Format the user's profile information. Including the current level, XP, and progress.
+    """
+
     current_xp = data.level_current_xp
     max_xp = data.level_max_xp
     needed_xp = max_xp - current_xp
 
     return (
-        f"Monkeytype info for {data.username}:\n\n"
-        f"{'joined:':>{ALIGN}} {joined.strftime('%d %b %Y')} "
-        f"({days_since_joined} days ago)\n"
         f"{'level:':>{ALIGN}} {data.level} | "
         f"{shorten_number(data.xp)} xp | "
         f"{shorten_number(current_xp)}/{shorten_number(max_xp)} "
@@ -131,19 +134,25 @@ def main():
     """Main function to fetch and display user streak information."""
 
     client = MonkeytypeClient()
+    profile_data = client.profile()
 
     output = [
-        profile(client.profile()),
+        "",
+        f"Monkeytype info for {profile_data.username}:",
+        "",
+        joined(profile_data),
+        level(profile_data),
         streaks(client.streaks()),
         "",
-        test_counts(client),
+        test_counts(profile_data),
         "",
         activity_heatmap(client.activity()),
         "",
         last_test(client),
+        "",
     ]
 
-    print("\n", "\n".join(output), "\n", sep="")
+    print("\n".join(output))
 
 
 if __name__ == "__main__":

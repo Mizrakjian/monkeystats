@@ -9,10 +9,26 @@ utc = ZoneInfo("UTC")
 
 
 @dataclass
+class Tests:
+    completed: int
+    started: int
+    time_typing: float
+
+    @classmethod
+    def from_api(cls, data: dict) -> Self:
+        return cls(
+            completed=data["completedTests"],
+            started=data["startedTests"],
+            time_typing=data["timeTyping"],
+        )
+
+
+@dataclass
 class Profile:
     username: str
     date_joined: datetime
     xp: int
+    tests: Tests
 
     level: int = field(init=False)
     level_current_xp: int = field(init=False)
@@ -29,6 +45,7 @@ class Profile:
             username=data["name"],
             date_joined=datetime.fromtimestamp(data["addedAt"] / 1000, tz=utc),
             xp=data["xp"],
+            tests=Tests.from_api(data["typingStats"]),
         )
 
 
@@ -49,19 +66,4 @@ class Streaks:
             last_result=datetime.fromtimestamp(data["lastResultTimestamp"] / 1000, tz=utc),
             current_length=data["length"],
             max_length=data["maxLength"],
-        )
-
-
-@dataclass
-class Stats:
-    tests_completed: int
-    tests_started: int
-    time_typing: int
-
-    @classmethod
-    def from_api(cls, data: dict) -> Self:
-        return cls(
-            tests_completed=data["completedTests"],
-            tests_started=data["startedTests"],
-            time_typing=data["timeTyping"],
         )

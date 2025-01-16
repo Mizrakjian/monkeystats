@@ -1,6 +1,6 @@
 from datetime import datetime, timedelta
 from itertools import batched, zip_longest
-from math import ceil
+from math import ceil, floor
 from zoneinfo import ZoneInfo
 
 from utils import ANSI
@@ -38,10 +38,16 @@ COLOR_MAP = [
 
 
 def calc_limits(data: list[int | None]) -> list[int]:
+    """Calculate dynamic thresholds (buckets) for the given data."""
+
+    def ts_round(value: float) -> int:
+        """Return int rounded value. Always round away from zero, mimicking TypeScript's Math.round()."""
+        return floor(value + 0.5) if value > 0 else ceil(value - 0.5)
+
     filtered = [v for v in data if v]
 
     sorted_data = sorted(filtered)
-    trim_start = int(len(sorted_data) * 0.1)
+    trim_start = ts_round(len(sorted_data) * 0.1)
     trimmed = sorted_data[trim_start:-trim_start]
 
     mean = sum(trimmed) / len(trimmed)
@@ -49,9 +55,9 @@ def calc_limits(data: list[int | None]) -> list[int]:
 
     return [
         0,
-        ceil(mean / 2),
-        ceil(mean),
-        ceil(mean * 1.5),
+        floor(mean / 2),
+        ts_round(mean),
+        ts_round(mean * 1.5),
         max_value - 1,
         max_value,
     ]

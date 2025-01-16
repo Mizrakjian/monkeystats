@@ -3,6 +3,7 @@ from itertools import batched, zip_longest
 from math import ceil, floor
 from zoneinfo import ZoneInfo
 
+from client.models import Activity
 from utils import ANSI
 
 # Constants
@@ -162,7 +163,7 @@ def draw_rows(rows: list[tuple[int, ...]]) -> list[str]:
     return output
 
 
-def activity_heatmap(activity: dict) -> str:
+def activity_heatmap(activity: Activity) -> str:
     """
     Generate a 7x53 heatmap for test counts over the trailing 53 weeks.
 
@@ -174,15 +175,11 @@ def activity_heatmap(activity: dict) -> str:
         str: Formatted heatmap as a string.
     """
 
-    data = [tests if tests else 0 for tests in activity["testsByDays"]]
-
-    last_day = datetime.fromtimestamp(activity["lastDay"] / 1000, tz=ZoneInfo("UTC"))
-
+    last_day = activity.last_day
     today = datetime.now(tz=ZoneInfo("UTC"))
-
     start_date = get_start_date(today)
 
-    data = pad_heatmap_data(data, last_day, today)
+    data = pad_heatmap_data(activity.daily_test_count, last_day, today)
 
     heatmap = map_counts(data)
 
@@ -213,11 +210,11 @@ def test_month_labels(date: datetime):
 
     print(f"Testing with custom today: {date.strftime('%Y-%m-%d')}")
 
-    print(activity_heatmap({"testsByDays": sample_data, "lastDay": date.timestamp() * 1000}))
+    print(activity_heatmap(Activity(daily_test_count=sample_data, last_day=date)))
 
 
 # Example Usage
 if __name__ == "__main__":
-    test_month_labels(datetime(2024, 12, 24))
-    test_month_labels(datetime(2025, 1, 6))
-    test_month_labels(datetime(2025, 1, 12))
+    test_month_labels(datetime(2024, 12, 24, tzinfo=ZoneInfo("UTC")))
+    test_month_labels(datetime(2025, 1, 6, tzinfo=ZoneInfo("UTC")))
+    test_month_labels(datetime(2025, 1, 12, tzinfo=ZoneInfo("UTC")))

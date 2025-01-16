@@ -29,6 +29,7 @@ class Profile:
     date_joined: datetime
     xp: int
     tests: Tests
+    personal_bests: dict
 
     level: int = field(init=False)
     level_current_xp: int = field(init=False)
@@ -46,6 +47,7 @@ class Profile:
             date_joined=datetime.fromtimestamp(data["addedAt"] / 1000, tz=utc),
             xp=data["xp"],
             tests=Tests.from_api(data["typingStats"]),
+            personal_bests=data["personalBests"],
         )
 
 
@@ -66,4 +68,17 @@ class Streaks:
             last_result=datetime.fromtimestamp(data["lastResultTimestamp"] / 1000, tz=utc),
             current_length=data["length"],
             max_length=data["maxLength"],
+        )
+
+
+@dataclass
+class Activity:
+    daily_test_count: list[int | None]
+    last_day: datetime
+
+    @classmethod
+    def from_api(cls, data: dict) -> Self:
+        return cls(
+            daily_test_count=[tests if tests else 0 for tests in data["testsByDays"]],
+            last_day=datetime.fromtimestamp(data["lastDay"] / 1000, tz=utc),
         )

@@ -66,7 +66,7 @@ def test_counts(data: Profile) -> str:
     )
 
 
-def last_test(client: MonkeytypeClient) -> str:
+def last_test(client: MonkeytypeClient, bests: dict) -> str:
     """Fetch and display the user's last test information and PB."""
 
     data = client.last_test()
@@ -78,14 +78,12 @@ def last_test(client: MonkeytypeClient) -> str:
     numbers = data.get("numbers", False)
     is_pb = data.get("isPb", False)
 
-    pb_data = client.personal_bests(test_mode, mode_unit)
-
     pb_wpm, pb_accuracy = next(
         (pb["wpm"], pb["acc"])
-        for pb in pb_data
+        for pb in bests[test_mode].get(mode_unit, [])
         if pb["language"] == language
-        if pb.get("punctuation", False) == punctuation
-        if pb.get("numbers", False) == numbers
+        and pb.get("punctuation", False) == punctuation
+        and pb.get("numbers", False) == numbers
     )
 
     test_time = datetime.fromtimestamp(data["timestamp"] / 1000, tz=utc)
@@ -110,7 +108,7 @@ def joined(data: Profile) -> str:
     joined = data.date_joined
     days_since_joined = (NOW - joined).days
 
-    return f"{'joined:':>{ALIGN}} {joined.strftime('%d %b %Y')} " f"({days_since_joined} days ago)"
+    return f"{'joined:':>{ALIGN}} {joined.strftime('%d %b %Y')} ({days_since_joined} days ago)"
 
 
 def level(data: Profile) -> str:
@@ -148,7 +146,7 @@ def main():
         "",
         activity_heatmap(client.activity()),
         "",
-        last_test(client),
+        last_test(client, profile_data.personal_bests),
         "",
     ]
 

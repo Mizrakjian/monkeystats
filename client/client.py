@@ -1,19 +1,16 @@
-from functools import wraps
-from time import perf_counter_ns
 from zoneinfo import ZoneInfo
 
 import requests
 
 from client.models import Activity, LastTest, Profile, Streaks
 from config import load_auth
-from utils import timer
 
 
 class MonkeytypeClient:
     """Client for interacting with the Monkeytype API."""
 
     def __init__(self, base_url: str = "https://api.monkeytype.com"):
-        auth = load_auth()  # Load key and user variables from auth file
+        auth = load_auth()
         self.api_key = auth.get("MONKEYTYPE_API_KEY", "")
         self.user = auth.get("MONKEYTYPE_USER", "")
         if not (self.api_key and self.user):
@@ -23,43 +20,38 @@ class MonkeytypeClient:
         self.headers = {"Authorization": f"ApeKey {self.api_key}"}
         self.utc = ZoneInfo("UTC")
 
-    def fetch_data(self, endpoint: str, params=None) -> dict:
+        # Explicit attributes for each model
+        self.profile: Profile
+        self.streaks: Streaks
+        self.activity: Activity
+        self.last_test: LastTest
+
+        # Map attributes to their endpoints and model classes
+        self._endpoints = {
+            "profile": (f"/users/{self.user}/profile", Profile),
+            "streaks": ("/users/streak", Streaks),
+            "activity": ("/users/currentTestActivity", Activity),
+            "last_test": ("/results/last", LastTest),
+        }
+
+    def _fetch_data(self, endpoint: str) -> dict:
         """
         Fetch data from the Monkeytype API.
 
         Args:
             endpoint (str): API endpoint to query.
-            params (dict, optional): Query parameters for the API call.
 
         Returns:
             dict: Parsed JSON response.
         """
         url = f"{self.base_url}{endpoint}"
-        response = requests.get(url, headers=self.headers, params=params or {})
+        response = requests.get(url, headers=self.headers)
         response.raise_for_status()
         return response.json().get("data", {})
 
-    # --- Getters for specific endpoints ---
-    @timer
-    def profile(self) -> Profile:
-        """Retrieve the user's profile information."""
-        data = self.fetch_data(f"/users/{self.user}/profile")
-        return Profile.from_api(data)
+    def fetch_all(self) -> None:
+        """Fetch all available data and dynamically assign it to attributes."""
 
-    @timer
-    def streaks(self) -> Streaks:
-        """Retrieve the user's streak information."""
-        data = self.fetch_data(f"/users/streak")
-        return Streaks.from_api(data)
-
-    @timer
-    def activity(self) -> Activity:
-        """Retrieve the user's current test activity."""
-        data = self.fetch_data("/users/currentTestActivity")
-        return Activity.from_api(data)
-
-    @timer
-    def last_test(self) -> LastTest:
-        """Retrieve the user's last test information."""
-        data = self.fetch_data(f"/results/last")
-        return LastTest.from_api(data)
+        for attr, (endpoint, model_class) in self._endpoints.items():
+            data = self._fetch_data(endpoint)
+            setattr(self, attr, model_class.from_api(data))

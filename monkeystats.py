@@ -66,8 +66,11 @@ def test_counts(data: Profile) -> str:
     )
 
 
-def last_test(data: LastTest, bests: dict) -> str:
+def last_test(client: MonkeytypeClient) -> str:
     """Fetch and display the user's last test information and PB."""
+
+    data = client.last_test
+    bests = client.profile.personal_bests
 
     test_mode = data.test_mode
     mode_unit = data.mode_unit
@@ -130,21 +133,21 @@ def main():
     """Main function to fetch and display user streak information."""
 
     client = MonkeytypeClient()
-    profile_data = client.profile()
+    client.fetch_all()
 
     output = [
         "",
-        f"Monkeytype info for {profile_data.username}:",
+        f"Monkeytype info for {client.profile.username}:",
         "",
-        joined(profile_data),
-        level(profile_data),
-        streaks(client.streaks()),
+        joined(client.profile),
+        level(client.profile),
+        streaks(client.streaks),
         "",
-        test_counts(profile_data),
+        test_counts(client.profile),
         "",
-        activity_heatmap(client.activity()),
+        activity_heatmap(client.activity),
         "",
-        last_test(client.last_test(), profile_data.personal_bests),
+        last_test(client),
         "",
     ]
 

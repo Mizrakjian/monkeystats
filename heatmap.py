@@ -185,7 +185,7 @@ def activity_heatmap(activity: Activity) -> str:
 
     # Split into weeks and transpose into rows
     weeks = [heatmap[i : i + 7] for i in range(0, TOTAL_DAYS, 7)]
-    rows = list(zip_longest(*weeks, fillvalue=0))
+    rows = list(zip(*weeks))
 
     half_rows = draw_rows(rows)
 
@@ -210,11 +210,15 @@ def test_month_labels(date: datetime):
 
     print(f"Testing with custom today: {date.strftime('%Y-%m-%d')}")
 
-    print(activity_heatmap(Activity(daily_test_count=sample_data, last_day=date)))
+    print(
+        activity_heatmap(
+            Activity(daily_test_count=sample_data, last_day=date.astimezone(tz=ZoneInfo("UTC")))
+        )
+    )
 
 
 # Example Usage
 if __name__ == "__main__":
-    test_month_labels(datetime(2024, 12, 24, tzinfo=ZoneInfo("UTC")))
-    test_month_labels(datetime(2025, 1, 6, tzinfo=ZoneInfo("UTC")))
-    test_month_labels(datetime(2025, 1, 12, tzinfo=ZoneInfo("UTC")))
+    test_month_labels(datetime(2024, 12, 24))
+    test_month_labels(datetime(2025, 1, 6))
+    test_month_labels(datetime(2025, 1, 12))

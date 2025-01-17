@@ -69,8 +69,8 @@ def test_counts(data: Profile) -> str:
 def last_test(client: MonkeytypeClient) -> str:
     """Fetch and display the user's last test information and PB."""
 
-    data = client.last_test
-    bests = client.profile.personal_bests
+    data: LastTest = client.last_test
+    bests: dict = client.profile.personal_bests
 
     test_mode = data.test_mode
     mode_unit = data.mode_unit

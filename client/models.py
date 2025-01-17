@@ -30,6 +30,7 @@ class Profile:
     xp: int
     tests: Tests
     personal_bests: dict
+    leader_boards: dict
 
     level: int = field(init=False)
     level_current_xp: int = field(init=False)
@@ -48,6 +49,7 @@ class Profile:
             xp=data["xp"],
             tests=Tests.from_api(data["typingStats"]),
             personal_bests=data["personalBests"],
+            leader_boards=data["allTimeLbs"],
         )
 
 
@@ -81,4 +83,31 @@ class Activity:
         return cls(
             daily_test_count=[tests if tests else 0 for tests in data["testsByDays"]],
             last_day=datetime.fromtimestamp(data["lastDay"] / 1000, tz=utc),
+        )
+
+
+@dataclass
+class LastTest:
+    test_mode: str
+    mode_unit: int
+    language: str
+    punctuation: bool
+    numbers: bool
+    is_pb: bool
+    wpm: float
+    acc: float
+    test_time: datetime
+
+    @classmethod
+    def from_api(cls, data: dict) -> Self:
+        return cls(
+            test_mode=data["mode"],
+            mode_unit=data["mode2"],
+            language=data["language"],
+            punctuation=data.get("punctuation", False),
+            numbers=data.get("numbers", False),
+            is_pb=data.get("isPb", False),
+            wpm=data["wpm"],
+            acc=data["acc"],
+            test_time=datetime.fromtimestamp(data["timestamp"] / 1000, tz=utc),
         )

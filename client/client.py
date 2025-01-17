@@ -4,25 +4,9 @@ from zoneinfo import ZoneInfo
 
 import requests
 
-from client.models import Activity, Profile, Streaks
+from client.models import Activity, LastTest, Profile, Streaks
 from config import load_auth
-
-
-def timer(func):
-    """
-    Decorator to time the execution of a non-async function.
-    Prints the elapsed time in milliseconds (ms).
-    """
-
-    @wraps(func)
-    def wrapper(*args, **kwargs):
-        start_time = perf_counter_ns()
-        result = func(*args, **kwargs)
-        elapsed_time = (perf_counter_ns() - start_time) / 1_000_000  # Convert ns to ms
-        print(f"Function '{func.__name__}' took {elapsed_time:.0f}ms")
-        return result
-
-    return wrapper
+from utils import timer
 
 
 class MonkeytypeClient:
@@ -75,21 +59,7 @@ class MonkeytypeClient:
         return Activity.from_api(data)
 
     @timer
-    def last_test(self) -> dict:
+    def last_test(self) -> LastTest:
         """Retrieve the user's last test information."""
-        return self.fetch_data(f"/results/last")
-
-    @timer
-    def personal_bests(self, test_mode: str, mode_unit: str) -> dict:
-        """
-        Retrieve the user's personal bests for a specific test mode and unit.
-
-        Args:
-            test_mode (str): The test mode (e.g., "time", "words").
-            mode_unit (str): The mode unit (e.g., "60s", "100w").
-
-        Returns:
-            dict: The personal best data.
-        """
-        params = {"mode": test_mode, "mode2": mode_unit}
-        return self.fetch_data("/users/personalBests", params=params)
+        data = self.fetch_data(f"/results/last")
+        return LastTest.from_api(data)

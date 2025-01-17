@@ -12,7 +12,7 @@ date: 2024-12-29
 from datetime import datetime, timedelta
 from zoneinfo import ZoneInfo
 
-from client import MonkeytypeClient, Profile, Streaks
+from client import LastTest, MonkeytypeClient, Profile, Streaks
 from heatmap import activity_heatmap
 from utils import format_time, shorten_number
 from utils.ansi import ANSI
@@ -66,19 +66,17 @@ def test_counts(data: Profile) -> str:
     )
 
 
-def last_test(client: MonkeytypeClient, bests: dict) -> str:
+def last_test(data: LastTest, bests: dict) -> str:
     """Fetch and display the user's last test information and PB."""
 
-    data = client.last_test()
+    test_mode = data.test_mode
+    mode_unit = data.mode_unit
+    language = data.language
+    punctuation = data.punctuation
+    numbers = data.numbers
+    is_pb = data.is_pb
 
-    test_mode = data["mode"]
-    mode_unit = data["mode2"]
-    language = data["language"]
-    punctuation = data.get("punctuation", False)
-    numbers = data.get("numbers", False)
-    is_pb = data.get("isPb", False)
-
-    pb_wpm, pb_accuracy = next(
+    pb_wpm, pb_acc = next(
         (pb["wpm"], pb["acc"])
         for pb in bests[test_mode].get(mode_unit, [])
         if pb["language"] == language
@@ -86,17 +84,17 @@ def last_test(client: MonkeytypeClient, bests: dict) -> str:
         and pb.get("numbers", False) == numbers
     )
 
-    test_time = datetime.fromtimestamp(data["timestamp"] / 1000, tz=utc)
+    test_time = data.test_time
     time_str = test_time.strftime("%Y-%m-%d %H:%M:%S UTC")
     time_ago = format_time(datetime.now(tz=utc) - test_time)
 
     test_modifiers = f"@{'on' if punctuation else 'off'} #{'on' if numbers else 'off'}"
-    pb_text = "★ new pb ★" if is_pb else f"pb: {pb_wpm:.1f} wpm {pb_accuracy:.0f}% acc"
+    pb_text = "★ new pb ★" if is_pb else f"pb: {pb_wpm:.1f} wpm {pb_acc:.0f}% acc"
 
     return (
         f"  last test: {test_mode} {mode_unit} | {test_modifiers} | "
         f"{language} | {time_str} ({time_ago} ago)\n"
-        f"  result: {data['wpm']:.1f} wpm {data['acc']:.0f}% acc | {pb_text}"
+        f"  result: {data.wpm:.1f} wpm {data.acc:.0f}% acc | {pb_text}"
     )
 
 
@@ -146,7 +144,7 @@ def main():
         "",
         activity_heatmap(client.activity()),
         "",
-        last_test(client, profile_data.personal_bests),
+        last_test(client.last_test(), profile_data.personal_bests),
         "",
     ]
 

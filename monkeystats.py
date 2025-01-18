@@ -82,7 +82,7 @@ def last_test(client: MonkeytypeClient) -> str:
     pb_wpm, pb_acc = next(
         (pb["wpm"], pb["acc"])
         for pb in bests[test_mode].get(mode_unit, [])
-        if pb["language"] == language
+        if pb.get("language", "english") == language
         and pb.get("punctuation", False) == punctuation
         and pb.get("numbers", False) == numbers
     )

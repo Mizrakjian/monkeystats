@@ -103,7 +103,7 @@ class LastTest:
         return cls(
             test_mode=data["mode"],
             mode_unit=data["mode2"],
-            language=data["language"],
+            language=data.get("language", "english"),
             punctuation=data.get("punctuation", False),
             numbers=data.get("numbers", False),
             is_pb=data.get("isPb", False),

@@ -12,7 +12,7 @@ date: 2024-12-29
 from datetime import datetime, timedelta
 from zoneinfo import ZoneInfo
 
-from client import LastTest, MonkeytypeClient, Profile, Streaks
+from client import MonkeytypeClient, Profile, Streaks
 from heatmap import activity_heatmap
 from utils import format_time, shorten_number
 from utils.ansi import ANSI
@@ -57,11 +57,13 @@ def test_counts(data: Profile) -> str:
     time_str = format_time(timedelta(seconds=time_typing))
     time_per_day = format_time(timedelta(seconds=time_typing / days_since_joined))
     time_per_test = format_time(timedelta(seconds=time_typing / completed_tests))
+    avg_tests = completed_tests / days_since_joined
 
     return (
         f"{'tests:':>{ALIGN}} "
         f"{started_tests} started | "
-        f"{completed_tests} completed ({completion_rate:.1f}%)\n"
+        f"{completed_tests} completed ({completion_rate:.1f}%) | "
+        f"~{avg_tests:.0f} tests/day\n"
         f"{'time:':>{ALIGN}} {time_str} | ~{time_per_day}/day | ~{time_per_test}/test"
     )
 
@@ -69,35 +71,32 @@ def test_counts(data: Profile) -> str:
 def last_test(client: MonkeytypeClient) -> str:
     """Fetch and display the user's last test information and PB."""
 
-    data: LastTest = client.last_test
-    bests: dict = client.profile.personal_bests
+    last = client.last_test
+    bests = client.profile.personal_bests
 
-    test_mode = data.test_mode
-    mode_unit = data.mode_unit
-    language = data.language
-    punctuation = data.punctuation
-    numbers = data.numbers
-    is_pb = data.is_pb
+    # Find the matching PB
+    pb = next((pb for pb in bests if pb == last), None)
 
-    pb_wpm, pb_acc = next(
-        (pb["wpm"], pb["acc"])
-        for pb in bests[test_mode].get(mode_unit, [])
-        if pb.get("language", "english") == language
-        and pb.get("punctuation", False) == punctuation
-        and pb.get("numbers", False) == numbers
+    pb_text = (
+        "★ new pb ★"
+        if last.is_pb
+        else (
+            f"pb: {pb.wpm:.1f} wpm {pb.acc:.0f}% acc {pb.consistency:.0f}% con"
+            if pb
+            else "no matching pb"
+        )
     )
 
-    test_time = data.test_time
+    test_time = last.test_time
     time_str = test_time.strftime("%Y-%m-%d %H:%M:%S UTC")
-    time_ago = format_time(datetime.now(tz=utc) - test_time)
+    time_ago = format_time(NOW - test_time)
 
-    test_modifiers = f"@{'on' if punctuation else 'off'} #{'on' if numbers else 'off'}"
-    pb_text = "★ new pb ★" if is_pb else f"pb: {pb_wpm:.1f} wpm {pb_acc:.0f}% acc"
+    test_modifiers = f"@{'on' if last.punctuation else 'off'} #{'on' if last.numbers else 'off'}"
 
     return (
-        f"  last test: {test_mode} {mode_unit} | {test_modifiers} | "
-        f"{language} | {time_str} ({time_ago} ago)\n"
-        f"  result: {data.wpm:.1f} wpm {data.acc:.0f}% acc | {pb_text}"
+        f"{'latest:':>{ALIGN}} {last.test_mode} {last.mode_unit} | {test_modifiers} | "
+        f"{last.language} | {time_str} ({time_ago} ago)\n"
+        f"{'result:':>{ALIGN}} {last.wpm:.1f} wpm {last.acc:.0f}% acc {last.consistency:.0f}% con | {pb_text}"
     )
 
 

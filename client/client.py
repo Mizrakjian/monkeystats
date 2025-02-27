@@ -1,3 +1,5 @@
+import json
+from datetime import datetime
 from zoneinfo import ZoneInfo
 
 import requests
@@ -34,7 +36,7 @@ class MonkeytypeClient:
             "last_test": ("/results/last", LastTest),
         }
 
-    def _fetch_data(self, endpoint: str) -> dict:
+    def _fetch_data(self, endpoint: str, params: dict | None = None) -> dict:
         """
         Fetch data from the Monkeytype API.
 
@@ -45,7 +47,7 @@ class MonkeytypeClient:
             dict: Parsed JSON response.
         """
         url = f"{self.base_url}{endpoint}"
-        response = requests.get(url, headers=self.headers)
+        response = requests.get(url, headers=self.headers, params=params)
         response.raise_for_status()
         return response.json().get("data", {})
 
@@ -55,3 +57,8 @@ class MonkeytypeClient:
         for attr, (endpoint, model_class) in self._endpoints.items():
             data = self._fetch_data(endpoint)
             setattr(self, attr, model_class.from_api(data))
+
+    def fetch_results(self) -> None:
+        data = self._fetch_data("/results", {"limit": 1000})
+        with open("results.json", "w", encoding="utf-8") as file:
+            json.dump(data, file, ensure_ascii=False, indent=4)

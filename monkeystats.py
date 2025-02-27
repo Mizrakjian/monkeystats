@@ -52,11 +52,11 @@ def test_counts(data: Profile) -> str:
     started_tests = data.tests.started
     time_typing = data.tests.time_typing
 
-    completion_rate = completed_tests / started_tests * 100 if started_tests else 0
+    completion_rate = (completed_tests * 1000) // started_tests / 10 if started_tests else 0
 
-    time_str = format_time(timedelta(seconds=time_typing))
-    time_per_day = format_time(timedelta(seconds=time_typing / days_since_joined))
-    time_per_test = format_time(timedelta(seconds=time_typing / completed_tests))
+    time_str = format_time(time_typing)
+    time_per_day = format_time(time_typing / days_since_joined)
+    time_per_test = format_time(time_typing / completed_tests)
     avg_tests = completed_tests / days_since_joined
 
     return (
@@ -75,17 +75,12 @@ def last_test(client: MonkeytypeClient) -> str:
     bests = client.profile.personal_bests
 
     # Find the matching PB
-    pb = next((pb for pb in bests if pb == last), None)
+    best = next((pb for pb in bests if pb == last), None)
 
-    pb_text = (
-        "★ new pb ★"
-        if last.is_pb
-        else (
-            f"pb: {pb.wpm:.1f} wpm {pb.acc:.0f}% acc {pb.consistency:.0f}% con"
-            if pb
-            else "no matching pb"
-        )
-    )
+    def format_test(test) -> str:
+        return f"{test.wpm:.1f} wpm  {int(test.acc)}% acc  {test.consistency:.0f}% con"
+
+    best_text = "★ new pb ★" if last.is_pb else f"pb: {format_test(best)}" if best else "no matching pb"
 
     test_time = last.test_time
     time_str = test_time.strftime("%Y-%m-%d %H:%M:%S UTC")
@@ -96,7 +91,7 @@ def last_test(client: MonkeytypeClient) -> str:
     return (
         f"{'latest:':>{ALIGN}} {last.test_mode} {last.mode_unit} | {test_modifiers} | "
         f"{last.language} | {time_str} ({time_ago} ago)\n"
-        f"{'result:':>{ALIGN}} {last.wpm:.1f} wpm {last.acc:.0f}% acc {last.consistency:.0f}% con | {pb_text}"
+        f"{'result:':>{ALIGN}} {format_test(last)} | {best_text}"
     )
 
 
@@ -133,6 +128,7 @@ def main():
 
     client = MonkeytypeClient()
     client.fetch_all()
+    # client.fetch_results()  # Temp to pull JSON from /results endpoint
 
     output = [
         "",

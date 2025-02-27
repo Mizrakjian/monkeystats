@@ -1,4 +1,4 @@
-from dataclasses import asdict, dataclass, field
+from dataclasses import dataclass, field
 from datetime import datetime
 from typing import Any, Self
 from zoneinfo import ZoneInfo
@@ -23,36 +23,35 @@ class Tests:
         )
 
 
-@dataclass
+@dataclass(eq=False)
 class TestRecord:
+    """Base class for LastTest and PersonalBest."""
+
     language: str
     test_mode: str
     mode_unit: int
     difficulty: str
     punctuation: bool
     numbers: bool
-    wpm: float
-    acc: float
-    consistency: float
-    test_time: datetime
+    wpm: float = field(compare=False)
+    acc: float = field(compare=False)
+    consistency: float = field(compare=False)
+    test_time: datetime = field(compare=False)
 
     @classmethod
-    def from_api(cls, data: dict, context: dict | None = None) -> Self:
-        """Create a TestRecord from API data, with optional context overrides."""
-        if context is None:
-            context = {}
-        merged_data = data | context  # Merge original data with overrides
+    def from_api(cls, data: dict) -> Self:
+        """Create a TestRecord from API data."""
         return cls(
-            language=merged_data.get("language", "english"),
-            test_mode=merged_data["mode"],
-            mode_unit=int(merged_data["mode2"]),
-            difficulty=merged_data.get("difficulty", "normal"),
-            punctuation=merged_data.get("punctuation", False),
-            numbers=merged_data.get("numbers", False),
-            wpm=merged_data["wpm"],
-            acc=merged_data["acc"],
-            consistency=merged_data["consistency"],
-            test_time=datetime.fromtimestamp(merged_data["timestamp"] / 1000, tz=utc),
+            language=data.get("language", "english"),
+            test_mode=data["mode"],
+            mode_unit=int(data["mode2"]),
+            difficulty=data.get("difficulty", "normal"),
+            punctuation=data.get("punctuation", False),
+            numbers=data.get("numbers", False),
+            wpm=data["wpm"],
+            acc=data["acc"],
+            consistency=data["consistency"],
+            test_time=datetime.fromtimestamp(data["timestamp"] // 1000, tz=utc),
         )
 
     def __eq__(self, other: Any) -> bool:
@@ -68,43 +67,40 @@ class TestRecord:
             "punctuation",
             "numbers",
         ]
-        return all(getattr(self, field) == getattr(other, field) for field in fields)
+        return all(getattr(self, f) == getattr(other, f) for f in fields)
 
 
 @dataclass(eq=False)
 class LastTest(TestRecord):
-    is_pb: bool
+    """Class to store LastTest records, adds is_pb field to existing TestRecord fields."""
+
+    is_pb: bool = field(init=False, compare=False)
 
     @classmethod
     def from_api(cls, data: dict) -> Self:
         """Create a LastTest instance from API data."""
-        # Parse shared fields from the parent
-        shared_fields = asdict(TestRecord.from_api(data))
-        # Add subclass-specific fields
-        return cls(is_pb=data.get("isPb", False), **shared_fields)
+        instance = super().from_api(data)
+        instance.is_pb = data.get("isPb", False)
+        return instance
 
 
 @dataclass(eq=False)
 class PersonalBest(TestRecord):
-    @classmethod
-    def from_api(cls, data: dict, language: str, test_mode: str, mode_unit: int) -> Self:
-        """Create a PersonalBest instance from a flattened API record."""
-        return super().from_api(data, {"language": language, "mode": test_mode, "mode2": mode_unit})
+    """
+    Class to store PersonalBest records.
+    Use parse_personal_bests() to flatten the raw API data into a list of PersonalBest records.
+    """
 
     @classmethod
     def parse_personal_bests(cls, data: dict) -> list[Self]:
         """Parse and flatten all personal bests into a list."""
-        personal_bests = []
-        # Iterate over test modes (e.g., "time", "words")
-        for test_mode, mode_units in data.items():
-            # Iterate over mode units (e.g., number of seconds or words)
-            for mode_unit, records in mode_units.items():
-                # Parse each record
-                for record in records:
-                    # Extract language from the record, default to "english"
-                    language = record.get("language", "english")
-                    personal_bests.append(cls.from_api(record, language, test_mode, mode_unit))
-        return personal_bests
+
+        return [
+            cls.from_api(record | {"mode": test_mode, "mode2": mode_unit})
+            for test_mode, mode_units in data.items()  # Test modes are "time" or "words"
+            for mode_unit, records in mode_units.items()  # Mode units are seconds or word count
+            for record in records
+        ]
 
 
 @dataclass
@@ -129,7 +125,7 @@ class Profile:
     def from_api(cls, data: dict) -> Self:
         return cls(
             username=data["name"],
-            date_joined=datetime.fromtimestamp(data["addedAt"] / 1000, tz=utc),
+            date_joined=datetime.fromtimestamp(data["addedAt"] // 1000, tz=utc),
             xp=data["xp"],
             tests=Tests.from_api(data["typingStats"]),
             personal_bests=PersonalBest.parse_personal_bests(data["personalBests"]),
@@ -151,7 +147,7 @@ class Streaks:
     @classmethod
     def from_api(cls, data: dict) -> Self:
         return cls(
-            last_result=datetime.fromtimestamp(data["lastResultTimestamp"] / 1000, tz=utc),
+            last_result=datetime.fromtimestamp(data["lastResultTimestamp"] // 1000, tz=utc),
             current_length=data["length"],
             max_length=data["maxLength"],
         )
@@ -159,12 +155,12 @@ class Streaks:
 
 @dataclass
 class Activity:
-    daily_test_count: list[int | None]
+    daily_test_count: list[int]
     last_day: datetime
 
     @classmethod
     def from_api(cls, data: dict) -> Self:
         return cls(
             daily_test_count=[tests if tests else 0 for tests in data["testsByDays"]],
-            last_day=datetime.fromtimestamp(data["lastDay"] / 1000, tz=utc),
+            last_day=datetime.fromtimestamp(data["lastDay"] // 1000, tz=utc),
         )

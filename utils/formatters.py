@@ -14,10 +14,13 @@ def shorten_number(number: int, places: int = 1) -> str:
     return f"{number / (1e3**magnitude):.{places}f}{suffix}"
 
 
-def format_time(elapsed: timedelta) -> str:
-    """Format a timedelta duration as a human-readable string."""
+def format_time(elapsed: timedelta | int | float) -> str:
+    """
+    Format a duration of seconds into a human-readable string.
+    Accepts int, float, and timedelta as input.
+    """
 
-    total_seconds = int(elapsed.total_seconds())
+    total_seconds = int(elapsed.total_seconds() if isinstance(elapsed, timedelta) else elapsed)
     hours, remainder = divmod(total_seconds, 3600)
     minutes, seconds = divmod(remainder, 60)
 

@@ -1,6 +1,7 @@
 from datetime import datetime, timedelta
 from itertools import batched, zip_longest
 from math import ceil, floor
+from statistics import mean
 from zoneinfo import ZoneInfo
 
 from client.models import Activity
@@ -102,7 +103,7 @@ def month_labels(start_date: datetime) -> str:
     return ansi.bg(BACKGROUND).apply("".join(output))
 
 
-def pad_heatmap_data(data: list[int | None], last_date: datetime, today: datetime) -> list[int | None]:
+def pad_heatmap_data(data: list[int], last_date: datetime, today: datetime) -> list[int | None]:
     """
     Pads or trims data to span exactly 53 weeks (371 days),
     ensuring it starts on a Sunday and ends on a Saturday.
@@ -181,6 +182,15 @@ def activity_heatmap(activity: Activity) -> str:
 
     data = pad_heatmap_data(activity.daily_test_count, last_day, today)
 
+    total_tests = sum(t for t in data if t)
+    active_days = sum(1 for t in data if t)
+    valid_days = sum(1 for t in data if t is not None)
+
+    # thresholds = calc_limits(data)
+    # key_detail = [
+    #     ansi.fg(color).apply(f"■{threshold}") for color, threshold in zip(COLOR_MAP, thresholds)
+    # ]
+
     heatmap = map_counts(data)
 
     # Split into weeks and transpose into rows
@@ -190,13 +200,28 @@ def activity_heatmap(activity: Activity) -> str:
     half_rows = draw_rows(rows)
 
     # Add weekday and month labels
-    header_left = f"{ansi.bg(BACKGROUND)}last 12 months — {sum(d for d in data if d)} tests"
+    header_left = f"{ansi.bg(BACKGROUND)}last 12 months — {total_tests} tests"
     key = "".join(f"{ansi.fg(color)}■" for color in COLOR_MAP)
     header_right = f"less {key} more{ansi.reset}"
     header = f"{header_left}{" "*10}{header_right}"
     footer = month_labels(start_date)
 
-    output = indent_and_margin([header, *half_rows, footer])
+    active = f"{active_days}/{valid_days} days active ({active_days/valid_days:.1%})"
+    active_pad = " " * (53 - len(active))
+
+    tests = f"~{total_tests/valid_days:.0f} tests/day | ~{total_tests/active_days:.0f} tests/active day"
+    tests_pad = " " * (53 - len(tests))
+
+    output = indent_and_margin(
+        [
+            header,
+            ansi.bg(BACKGROUND).apply(active_pad + active),
+            ansi.bg(BACKGROUND).apply(tests_pad + tests),
+            *half_rows,
+            footer,
+        ]
+    )
+    # output.append("          " + " ".join(key_detail))
 
     return "\n".join(output)
 
